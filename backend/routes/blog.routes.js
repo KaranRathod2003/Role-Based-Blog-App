@@ -7,6 +7,6 @@ import { validateBlog } from '../middleware/validator.js';
 const router = express.Router();
 
 // Protected route - need auth
-router.post('/', verifyJWT, validateBlog, createBlog);
+router.route('/').post(verifyJWT, validateBlog, createBlog);
 
-export {router};
+export default router;
