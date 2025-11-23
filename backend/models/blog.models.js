@@ -30,7 +30,8 @@ const blogSchema = new Schema ({
         trim : true,
         type : String,
         lowercase : true,
-        unique : true
+        unique : true,
+        unique: true,
     }
 }, {
     timestamps:true

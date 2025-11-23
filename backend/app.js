@@ -28,7 +28,7 @@ app.use("/api/v1/blogs", blogRouter)
 app.use((err, req, res, next) => {
   console.error("Error Middleware:", err);
   if (err instanceof ApiError) {
-    return res.status(err.statuscode).json({
+    return res.status(err.statusCode).json({
       success: false,
       message: err.message,
       errors: err.errors || [],
