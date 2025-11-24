@@ -29,7 +29,11 @@ const createBlog = asyncHandler(async (req, res) => {
         .replace(/-+$/, '');
     const existingSlug = await Blog.findOne({ slug });
     if (existingSlug) {
-        slug = `${slug}-${Date.now()}`
+        slug = `${slug}-${Date.now()} - same Title`
+    }
+    const existingTitle = await Blog.findOne({ title });
+    if(existingTitle){
+        console.log("Title name is already exits")
     }
     const blog = await Blog.create({ title : title.trim(), content : content.trim(), author: authorId, slug, likes: [] })
     // I cant think the logic to find that blog is created or not my thinking is so brute force tell i m wrong or rgiht just check blogs from created user if blog is created then pass that blog in data and success if not apierror error occuired if not we will use apiresponse  
