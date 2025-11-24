@@ -90,4 +90,17 @@ const getAllBlogs = asyncHandler(async (req, res) =>{
 
 })
 
-export { createBlog, getAllBlogs }
+const getBlogBySlug = asyncHandler(async(req, res)=>{
+    const slug = req.params.slug;
+    const blog = await Blog.findOne({ slug })
+                            .populate("author", "name email")
+                            .populate("likes", "name")
+    if(!blog) return res.status(404).json(new ApiError(404, "Blog not found"));
+    blog.views = blog.views + 1;
+    await blog.save();
+    return res.status(200).json(new ApiResponse(200, blog, "Blog fetched successfully"))
+
+
+})
+
+export { createBlog, getAllBlogs, getBlogBySlug }
