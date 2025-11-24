@@ -45,18 +45,49 @@ const createBlog = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, createdBlog, "Blog created successfully"))
 })
 
-// const getAllBlogs = asyncHandler(async (req, res) =>{
-//     let page = Number(req.query.page) || 1;
-//     let limit = Number(req.query.limit) || 5;
-//     let skip = (page - 1) * limit;
-//     const {author} = req.query.author;
-//     const filter = {}
-//     if(author){
-//         filter.author = author.authorId;
-//     }
+const getAllBlogs = asyncHandler(async (req, res) =>{
+    let page = Number(req.query.page) || 1;
+    let limit = Number(req.query.limit) || 5;
+    let skip = (page - 1) * limit;
+    const author = req.query.author;
+    const filter = {}
+    if(author){
+       filter.author = author;
+    }
+    const blog  = await Blog.find(filter)
+                        .skip(skip)
+                        .populate("author", "name email")
+                        .populate("likes", "name")
+                        .select("-__v")
+                        .sort({createdAt : -1})
+                        .limit(limit)
+    // we got blogs 
+    const totalCounts = await Blog.countDocuments(filter);
+    // we got total counts 
+    // total pages
+    const totalPages = Math.ceil(totalCounts / limit);
+    let hasNextPage = page < totalPages;
+    let hasPrevPage = page > 1;
+    const dataObject =  {
+    blogs: blog,
+    pagination: {
+         currentPage: page,
+         totalPages: totalPages,
+         totalBlogs: totalCounts,
+         hasNextPage: hasNextPage,
+         hasPrevPage: hasPrevPage
+    }
+}
+
+
+    return res.status(200).json(new ApiResponse(200, dataObject, "Blog fetched successfully"))
 
 
 
-// })
 
-export { createBlog }
+
+
+
+})
+
+export { createBlog, getAllBlogs }
