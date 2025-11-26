@@ -29,38 +29,38 @@ const createBlog = asyncHandler(async (req, res) => {
         .replace(/-+$/, '');
     const existingSlug = await Blog.findOne({ slug });
     if (existingSlug) {
-        slug = `${slug}-${Date.now()} - same Title`
+        slug = `${slug}-${Date.now()}`
     }
     const existingTitle = await Blog.findOne({ title });
-    if(existingTitle){
+    if (existingTitle) {
         console.log("Title name is already exits")
     }
-    const blog = await Blog.create({ title : title.trim(), content : content.trim(), author: authorId, slug, likes: [] })
+    const blog = await Blog.create({ title: title.trim(), content: content.trim(), author: authorId, slug, likes: [] })
     // I cant think the logic to find that blog is created or not my thinking is so brute force tell i m wrong or rgiht just check blogs from created user if blog is created then pass that blog in data and success if not apierror error occuired if not we will use apiresponse  
     // but user modle me aisa kuch nahi jisse mai check kar saku ki blog bana hai ya nahi kya ye sahi approach hai 
     if (!blog) throw new ApiError(500, "Something went wrong createing blog")
     const createdBlog = await Blog.findById(blog._id).populate("author", "name email").lean();
 
-    
+
     return res.status(201).json(new ApiResponse(201, createdBlog, "Blog created successfully"))
 })
 
-const getAllBlogs = asyncHandler(async (req, res) =>{
+const getAllBlogs = asyncHandler(async (req, res) => {
     let page = Number(req.query.page) || 1;
     let limit = Number(req.query.limit) || 5;
     let skip = (page - 1) * limit;
     const author = req.query.author;
     const filter = {}
-    if(author){
-       filter.author = author;
+    if (author) {
+        filter.author = author;
     }
-    const blog  = await Blog.find(filter)
-                        .skip(skip)
-                        .populate("author", "name email")
-                        .populate("likes", "name")
-                        .select("-__v")
-                        .sort({createdAt : -1})
-                        .limit(limit)
+    const blog = await Blog.find(filter)
+        .skip(skip)
+        .populate("author", "name email")
+        .populate("likes", "name")
+        .select("-__v")
+        .sort({ createdAt: -1 })
+        .limit(limit)
     // we got blogs 
     const totalCounts = await Blog.countDocuments(filter);
     // we got total counts 
@@ -68,16 +68,16 @@ const getAllBlogs = asyncHandler(async (req, res) =>{
     const totalPages = Math.ceil(totalCounts / limit);
     let hasNextPage = page < totalPages;
     let hasPrevPage = page > 1;
-    const dataObject =  {
-    blogs: blog,
-    pagination: {
-         currentPage: page,
-         totalPages: totalPages,
-         totalBlogs: totalCounts,
-         hasNextPage: hasNextPage,
-         hasPrevPage: hasPrevPage
+    const dataObject = {
+        blogs: blog,
+        pagination: {
+            currentPage: page,
+            totalPages: totalPages,
+            totalBlogs: totalCounts,
+            hasNextPage: hasNextPage,
+            hasPrevPage: hasPrevPage
+        }
     }
-}
 
 
     return res.status(200).json(new ApiResponse(200, dataObject, "Blog fetched successfully"))
@@ -90,12 +90,12 @@ const getAllBlogs = asyncHandler(async (req, res) =>{
 
 })
 
-const getBlogBySlug = asyncHandler(async(req, res)=>{
+const getBlogBySlug = asyncHandler(async (req, res) => {
     const slug = req.params.slug;
     const blog = await Blog.findOne({ slug })
-                            .populate("author", "name email")
-                            .populate("likes", "name")
-    if(!blog) return res.status(404).json(new ApiError(404, "Blog not found"));
+        .populate("author", "name email")
+        .populate("likes", "name")
+    if (!blog) return res.status(404).json(new ApiError(404, "Blog not found"));
     blog.views = blog.views + 1;
     await blog.save();
     return res.status(200).json(new ApiResponse(200, blog, "Blog fetched successfully"))
@@ -103,4 +103,40 @@ const getBlogBySlug = asyncHandler(async(req, res)=>{
 
 })
 
-export { createBlog, getAllBlogs, getBlogBySlug }
+const updateBlog = asyncHandler(async (req, res) => {
+    const blogId = req.params.id;
+    const userId = req.user._id;
+    const { title, content, tags } = req.body;
+    const blog = await Blog.findById(blogId);
+    if (!blog) return res.status(404).json(new ApiError(404, "Blog not found"));
+    if (blog.author.toString() === userId.toString()) {
+        if (title && title.trim() && title.trim() !== blog.title) {
+            let slug = title
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, '-')         // spaces to hyphens
+                .replace(/[^\w\-]+/g, '')     // remove special chars
+                .replace(/\-\-+/g, '-')       // multiple hyphens to one
+                .replace(/^-+/, '')           // trim start
+                .replace(/-+$/, '');
+            if(await Blog.findOne({ slug })){
+                slug = `${slug}-${Date.now()}`
+            }
+            blog.slug = slug;
+        }
+        if (title && title.trim()) blog.title = title.trim();
+        if (content && content.trim()) blog.content = content.trim();
+        if (tags && Array.isArray(tags)) blog.tags = tags;
+
+        await blog.save();
+        const updatedBlog = await Blog.findById(blogId)
+            .populate("author", "name email")
+            .lean()
+        return res.status(200).json(new ApiResponse(200, updatedBlog, "Blog updated successfully"))
+    }
+    else {
+        return res.status(403).json(new ApiError(403, "Not authorized"));
+    }
+})
+
+export { createBlog, getAllBlogs, getBlogBySlug, updateBlog }
