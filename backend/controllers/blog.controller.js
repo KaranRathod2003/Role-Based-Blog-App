@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 
 const createBlog = asyncHandler(async (req, res) => {
-    const { title, content } = req.body;
+    const { title, content, tags } = req.body;
     const authorId = req.user?._id;
     if (!authorId) {
         throw new ApiError(401, "Unauthorized - Please login first");
@@ -139,4 +139,17 @@ const updateBlog = asyncHandler(async (req, res) => {
     }
 })
 
-export { createBlog, getAllBlogs, getBlogBySlug, updateBlog }
+const deleteBlog = asyncHandler(async(req, res)=>{
+    const blogId = req.params.id;
+    const userId = req.user._id;
+    const blog = await Blog.findById(blogId);
+    if(!blog) throw new ApiError(404, "Blog not found");
+    if(blog.author.toString() !== userId.toString()){
+        throw new ApiError(403, "You can only delete your own blogs");
+    }
+    await Blog.findByIdAndDelete(blogId);
+    return res.status(200).json(new ApiResponse(200, {blogId}, "Blog deleted successfully"));
+
+})
+
+export { createBlog, getAllBlogs, getBlogBySlug, updateBlog, deleteBlog }
